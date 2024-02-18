@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:spring="http://www.mulesoft.org/schema/mule/spring" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/spring http://www.mulesoft.org/schema/mule/spring/current/mule-spring.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<spring:config name="Spring_Config" doc:name="Spring Config" doc:id="1d35bc72-0cb3-494b-b1c9-e2101d015b0b" files="spring\beans.xml" />
+	
+	<notifications>
+        <notification event="CONTEXT" />
+        <notification-listener ref="cacheLoaderService" />
+    </notifications>
+    
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="1db3da20-baa1-4193-a49b-36379fa138f6" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<os:object-store name="Non-Persistent-Object-Store" doc:name="Object store" doc:id="70f45543-47d0-4b9f-bbe8-2ae26c50de2f" persistent="false" />
+	<flow name="loadCache" doc:id="51805d2a-0793-487c-9301-7ba809495a90" >
+		<logger level="INFO" doc:name="Logger" doc:id="8365fa78-1431-4f02-84e5-6ec6aa273dab" message="Loading cache from Mule Flow"/>
+		<os:store doc:name="Store greetings" doc:id="211c28ea-c5c3-4159-922d-09e197220301" key="greeting" objectStore="Non-Persistent-Object-Store">
+			<os:value ><![CDATA[Good Morning]]></os:value>
+		</os:store>
+	</flow>
+	<flow name="java-springFlow" doc:id="a9ab01cb-b13b-4440-aec1-f539db6dbc49" >
+		<http:listener doc:name="Listener" doc:id="0fa69fb1-15d9-49a6-ba33-a69de0d1e69b" path="/api/java-spring" config-ref="HTTP_Listener_config"/>
+		<os:retrieve doc:name="Retrieve" doc:id="3038dca1-6471-4ea9-85e4-8b5bde97b5c7" key="greeting" objectStore="Non-Persistent-Object-Store" target="greeting">
+			<os:default-value ><![CDATA["UNKNOWN"]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Set payload" doc:id="eb24c702-96a5-4132-8f42-0a1f57d5a9b5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"greeting" : vars.greeting
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log payload" doc:id="650b3b48-ae0c-4de6-94c3-73f2350c49b4" message="#[payload]"/>
+	</flow>
+</mule>
